@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flujo de Datos BI - KAM Group</title>
+    <!-- Fuentes corporativas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #070913;
+            --accent: #b08d57;
+            --text-dark: #222222;
+            --text-muted: #555555;
+            --line-color: #b08d57;
+            --bg-light: #fafafa;
+            --border-light: #e5e7eb;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #e5e5e5;
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            position: fixed; top: 0; left: 0; width: 100%; background: var(--primary);
+            padding: 10px 20px; display: flex; gap: 15px; z-index: 1000;
+            box-sizing: border-box; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+        }
+        .toolbar button {
+            background: transparent; color: #ffffff; border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px; font-family: 'Montserrat', sans-serif; font-size: 12px;
+            text-transform: uppercase; letter-spacing: 1px; cursor: pointer; border-radius: 2px; transition: 0.3s;
+        }
+        .toolbar button:hover { background: #ffffff; color: var(--primary); }
+
+        /* Contenedor Presentation */
+        .presentation-wrapper {
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; width: 100vw; padding-top: 50px; box-sizing: border-box; position: relative;
+        }
+        .presentation-container {
+            background: #ffffff; width: 100%; max-width: 1280px; aspect-ratio: 16 / 9;
+            position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.2); overflow: hidden;
+        }
+
+        /* Logo Integrado DENTRO de cada lámina */
+        .slide-logo {
+            position: absolute; top: 35px; right: 40px; width: 130px; pointer-events: none; z-index: 20;
+        }
+
+        /* Fullscreen adjustments */
+        :fullscreen .presentation-wrapper { padding-top: 0; background: #000; }
+        :fullscreen .toolbar { transform: translateY(-100%); }
+        :fullscreen .presentation-container { max-width: 100vw; max-height: 100vh; aspect-ratio: auto; width: 100vw; height: 100vh; }
+
+        /* Slides */
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 5% 7%; box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: center;
+            opacity: 0; visibility: hidden; transform: scale(0.95) translateY(20px);
+            transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1), transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.8s;
+            background: #ffffff;
+        }
+        .slide.active { opacity: 1; visibility: visible; transform: scale(1) translateY(0); z-index: 10; }
+        
+        .slide.dark-slide { 
+            background-color: var(--primary) !important; 
+            color: #ffffff !important; 
+            text-align: center; 
+            align-items: center; 
+        }
+        .slide.dark-slide h1, .slide.dark-slide h2, .slide.dark-slide p { color: #ffffff !important; }
+        .slide.dark-slide .divider { background-color: var(--accent) !important; }
+
+        /* Tipografía */
+        h1 { font-family: 'Playfair Display', serif; font-size: 2.8rem; color: var(--primary); font-weight: 700; margin: 0 0 0.8rem 0; line-height: 1.1; letter-spacing: -0.5px; }
+        h2 { font-size: 1.2rem; color: var(--accent); font-weight: 500; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 1.2rem 0; }
+        p, li { font-size: 1.05rem; line-height: 1.6; color: var(--text-muted); font-weight: 400; margin: 0 0 10px 0; }
+        ul { padding-left: 1.5rem; margin: 0; } li { margin-bottom: 8px; }
+        
+        .divider { height: 1px; width: 80px; background-color: var(--accent); margin: 1.2rem 0; }
+        
+        /* Layouts & Images */
+        .flex-row { display: flex; gap: 30px; align-items: stretch; width: 100%; }
+        .flex-row.items-center { align-items: center; }
+        .flex-col { flex: 1; display: flex; flex-direction: column; }
+        
+        .box { background: var(--bg-light); padding: 22px; border: 1px solid var(--border-light); border-left-width: 3px; border-left-color: var(--accent); border-radius: 4px; height: 100%; }
+
+        .img-fluid { max-width: 100%; max-height: 55vh; object-fit: contain; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid var(--border-light); }
+        .img-placeholder { display: flex; width: 100%; background: #eee; min-height: 300px; align-items: center; justify-content: center; color: #999; font-size: 14px; border-radius: 4px; }
+
+        /* Navegación */
+        .nav-controls { position: absolute; bottom: 30px; right: 40px; display: flex; align-items: center; gap: 20px; z-index: 100; }
+        .nav-controls button { background: none; border: none; font-size: 1.5rem; color: var(--primary); cursor: pointer; transition: 0.3s; padding: 5px; }
+        .nav-controls button:hover { color: var(--accent); transform: scale(1.2); }
+        .slide-counter { font-size: 0.9rem; letter-spacing: 2px; color: var(--text-muted); }
+        
+        [contenteditable="true"] { outline: none !important; }
+        [contenteditable="true"]:focus { outline: none !important; background: rgba(176, 141, 87, 0.05) !important; box-shadow: none !important; }
+
+        /* Diagrama de Flujo */
+        .flow-diagram {
+            display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 30px 0;
+        }
+        .flow-node {
+            background: var(--bg-light); border: 2px solid var(--primary); border-radius: 8px; padding: 20px; text-align: center; width: 22%; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .flow-node h3 { font-size: 1.2rem; margin: 0 0 10px 0; color: var(--primary); }
+        .flow-node p { font-size: 0.9rem; margin: 0; color: var(--text-muted); }
+        .flow-arrow {
+            font-size: 2rem; color: var(--accent);
+        }
+
+        /* === ESTILOS DE IMPRESIÓN PDF PERFECTOS === */
+        @media print {
+            @page { size: 16in 9in; margin: 0 !important; }
+            html, body { background: #ffffff !important; height: 100% !important; width: 100% !important; overflow: visible !important; }
+            .toolbar, .nav-controls { display: none !important; }
+            .presentation-wrapper { display: block !important; height: auto !important; width: 100% !important; padding: 0 !important; }
+            .presentation-container { box-shadow: none !important; max-width: none !important; width: 100% !important; height: auto !important; aspect-ratio: auto !important; overflow: visible !important; }
+            .slide { position: relative !important; opacity: 1 !important; visibility: visible !important; transform: none !important; display: flex !important; height: 9in !important; width: 16in !important; box-sizing: border-box !important; padding: 5% 7% !important; page-break-after: always !important; page-break-inside: avoid !important; }
+            .dark-slide { background: var(--primary) !important; color: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .dark-slide h1, .dark-slide h2, .dark-slide p { color: white !important; }
+            .img-fluid { max-height: 6in !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Toolbar -->
+    <div class="toolbar" contenteditable="false">
+        <span>💡 Doble clic en textos para editar</span>
+        <button onclick="toggleFullScreen()">📺 Pantalla Completa</button>
+        <button onclick="window.print()">🖨️ Generar PDF</button>
+    </div>
+
+    <!-- Contenedor Principal -->
+    <div class="presentation-wrapper">
+        <div class="presentation-container" id="slides-container">
+            
+            <!-- 1. PORTADA -->
+            <div class="slide center-text active" contenteditable="true" style="align-items: center;">
+                <img src="./logo_kam.png" class="slide-logo" alt="KAM Group" onerror="this.style.display='none'">
+                <h2 style="margin-top: 80px;">Arquitectura y Gobernanza de Datos</h2>
+                <h1 style="font-size: 4.5rem; text-align: center;">Flujo de Datos BI</h1>
+                <div class="divider"></div>
+                <p style="text-align: center;"><strong>KAM Group</strong></p>
+            </div>
+
+            <!-- 2. ESQUEMA DEL FLUJO DE DATOS -->
+            <div class="slide" contenteditable="true">
+                <img src="./logo_kam.png" class="slide-logo" alt="KAM Group" onerror="this.style.display='none'">
+                <h2>Arquitectura Cloud</h2>
+                <h1>Esquema de Extracción y Visualización</h1>
+                
+                <div class="flow-diagram">
+                    <div class="flow-node">
+                        <h3>1. Odoo ERP</h3>
+                        <p>Origen transaccional. Expone datos estructurados vía módulo OpenAPI seguro[cite: 104, 105].</p>
+                    </div>
+                    <div class="flow-arrow">➔</div>
+                    <div class="flow-node" style="border-color: var(--accent);">
+                        <h3>2. Cloud Run & Scheduler</h3>
+                        <p>Script Python automatizado que consulta Odoo y orquesta la transferencia diaria a Google Cloud[cite: 104].</p>
+                    </div>
+                    <div class="flow-arrow">➔</div>
+                    <div class="flow-node">
+                        <h3>3. BigQuery</h3>
+                        <p>Data Warehouse corporativo. Centraliza, limpia y almacena grandes volúmenes de datos históricos[cite: 105].</p>
+                    </div>
+                    <div class="flow-arrow">➔</div>
+                    <div class="flow-node">
+                        <h3>4. Looker Studio</h3>
+                        <p>Capa de visualización. Consume datos procesados de BigQuery para alimentar tableros directivos[cite: 108].</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. CLOUD RUN -->
+            <div class="slide" contenteditable="true">
+                <img src="./logo_kam.png" class="slide-logo" alt="KAM Group" onerror="this.style.display='none'">
+                <h2>Paso 1: Orquestación</h2>
+                <h1>Cloud Run</h1>
+                <div class="flex-row items-center">
+                    <div class="flex-col" style="flex: 0.4;">
+                        <div class="box">
+                            <p>Servicio administrado de Google Cloud que aloja el script de extracción (Python)[cite: 102]. Se encarga de solicitar los datos a Odoo mediante autenticación segura e inyectarlos en BigQuery[cite: 102].</p>
+                        </div>
+                    </div>
+                    <div class="flex-col" style="flex: 0.6; align-items: center;">
+                        <img src="./Cloud Run.png" alt="Cloud Run" class="img-fluid" onerror="this.outerHTML='<div class=\'img-placeholder\'>[Imagen: Cloud Run.png]</div>'">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. CLOUD RUN COSTOS -->
+            <div class="slide" contenteditable="true">
+                <img src="./logo_kam.png" class="slide-logo" alt="KAM Group" onerror="this.style.display='none'">
+                <h2>Paso 1.1: Gobernanza Financiera</h2>
+                <h1>Cloud Run: Costos Actuales</h1>
+                <div class="flex-row items-center">
+                    <div class="flex-col" style="flex: 0.4;">
+                        <div class="box">
+                            <p>El esquema <em>serverless</em> garantiza un costo operativo mínimo, cobrando únicamente por los segundos de procesamiento que toma sincronizar los datos diarios hacia el almacén central[cite: 103].</p>
+                        </div>
+                    </div>
+                    <div class="flex-col" style="flex: 0.6; align-items: center;">
+                        <img src="./Cloud run_Costos Actuales.png" alt="Cloud Run Costos" class="img-fluid" onerror="this.outerHTML='<div class=\'img-placeholder\'>[Imagen: Cloud run_Costos Actuales.png]</div>'">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. CLOUD SCHEDULER -->
+            <div class="slide" contenteditable="true">
+                <img src="./logo_kam.png" class="slide-logo" alt="KAM Group" onerror="this.style.display='none'">
+                <h2>Paso 2: Automatización</h2>
+                <h1>Cloud Scheduler</h1>
+                <div class="flex-row items-center">
+                    <div class="flex-col" style="flex: 0.4;">
+                        <div class="box">
+                            <p>Funciona como el temporizador maestro (Cron Job)[cite: 104]. Dispara la ejecución del servicio de extracción en intervalos precisos (ej. diario a las 6:00 AM) sin necesidad de intervención manual[cite: 104].</p>
+                        </div>
+                    </div>
+                    <div class="flex-col" style="flex: 0.6; align-items: center;">
+                        <img src="./Cloud Scheduler.png" alt="Cloud Scheduler" class="img-fluid" onerror="this.outerHTML='<div class=\'img-placeholder\'>[Imagen: Cloud Scheduler.png]</div>'">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. BIGQUERY -->
+            <div class="slide" contenteditable="true">
+                <img src="./logo_kam.png" class="slide-logo" alt="KAM Group" onerror="this.style.display='none'">
+                <h2>Paso 3: Data Warehouse</h2>
+                <h1>Big Query: Almacenamiento</h1>
+                <div class="flex-row items-center">
+                    <div class="flex-col" style="flex: 0.4;">
+                        <div class="box">
+                            <p>El repositorio central (OLAP)[cite: 105]. Almacena tablas estructuradas (ej. <code>obt_ventas_pos</code>, <code>product_template</code>) preparadas para análisis masivo y consultas ultrarrápidas desde las herramientas de visualización[cite: 105].</p>
+                        </div>
+                    </div>
+                    <div class="flex-col" style="flex: 0.6; align-items: center;">
+                        <img src="./Big Query_Almacenamiento.png" alt="Big Query Almacenamiento" class="img-fluid" onerror="this.outerHTML='<div class=\'img-placeholder\'>[Imagen: Big Query_Almacenamiento.png]</div>'">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. CONEXIÓN SHEETS -->
+            <div class="slide" contenteditable="true">
+                <img src="./logo_kam.png" class="slide-logo" alt="KAM Group" onerror="this.style.display='none'">
+                <h2>Capa Intermedia Opcional</h2>
+                <h1>Conexión Big Query - Sheets</h1>
+                <div class="flex-row items-center">
+                    <div class="flex-col" style="flex: 0.4;">
+                        <div class="box">
+                            <p>BigQuery permite la extracción delegada hacia Google Sheets (Connected Sheets) para analistas que requieran manipular data cruda sin impactar el rendimiento de la base de datos principal[cite: 106].</p>
+                        </div>
+                    </div>
+                    <div class="flex-col" style="flex: 0.6; align-items: center;">
+                        <img src="./Conexion Big Query - Sheets.png" alt="Conexión Sheets" class="img-fluid" onerror="this.outerHTML='<div class=\'img-placeholder\'>[Imagen: Conexion Big Query - Sheets.png]</div>'">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. CONEXIÓN LOOKER -->
+            <div class="slide" contenteditable="true">
+                <img src="./logo_kam.png" class="slide-logo" alt="KAM Group" onerror="this.style.display='none'">
+                <h2>Paso 4: Semántica Visual</h2>
+                <h1>Conexión Big Query - Looker</h1>
+                <div class="flex-row items-center">
+                    <div class="flex-col" style="flex: 0.4;">
+                        <div class="box">
+                            <p>Looker Studio se enlaza directamente a BigQuery mapeando las métricas y dimensiones sin mover los datos subyacentes[cite: 107]. Aquí se configuran agregaciones predeterminadas y tipos de datos de forma segura[cite: 107].</p>
+                        </div>
+                    </div>
+                    <div class="flex-col" style="flex: 0.6; align-items: center;">
+                        <img src="./Conexion Big Query - Looker.png" alt="Conexión Looker" class="img-fluid" onerror="this.outerHTML='<div class=\'img-placeholder\'>[Imagen: Conexion Big Query - Looker.png]</div>'">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. INFORME FINAL LOOKER -->
+            <div class="slide" contenteditable="true">
+                <img src="./logo_kam.png" class="slide-logo" alt="KAM Group" onerror="this.style.display='none'">
+                <h2>Entrega Funcional</h2>
+                <h1>Informe Looker</h1>
+                <div class="flex-row items-center">
+                    <div class="flex-col" style="flex: 0.4;">
+                        <div class="box">
+                            <p>El resultado directo para la gerencia[cite: 108]. Tableros interactivos que reflejan la realidad del negocio, conectando la extracción del ERP hasta la toma de decisiones estratégicas de manera fluida y escalable[cite: 108].</p>
+                        </div>
+                    </div>
+                    <div class="flex-col" style="flex: 0.6; align-items: center;">
+                        <img src="./Informe Looker.png" alt="Informe Looker" class="img-fluid" onerror="this.outerHTML='<div class=\'img-placeholder\'>[Imagen: Informe Looker.png]</div>'">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 10. CIERRE / CONDICIONES -->
+            <div class="slide dark-slide" contenteditable="true" style="justify-content: center;">
+                <img src="./logo_kam.png" class="slide-logo" alt="KAM Group" onerror="this.style.display='none'">
+                <h2 style="font-family: 'Playfair Display', serif; font-size: 2.1rem; text-transform: none; letter-spacing: 0; color: white; line-height: 1.3; max-width: 900px; margin: 0 auto;">Consideraciones Finales de Entrega</h2>
+                
+                <div class="divider" style="margin: 20px auto;"></div>
+                
+                <div style="max-width: 700px; margin: 0 auto; text-align: left;">
+                    <ul style="color: white; font-size: 1.1rem; line-height: 1.8;">
+                        <li style="color: white;">Todo desarrollo de tablero nuevo incluye por definición <strong>3 pantallas operativas</strong> integradas.</li>
+                        <li style="color: white;">A partir de esta entrega oficial, se habilita una <strong>ventana de 7 días continuos</strong> para solicitar ajustes iterativos en función del feedback directo del usuario final.</li>
+                        <li style="color: white;">El objetivo final es asegurar que la herramienta responda de forma precisa y ágil a la realidad de KAM Group.</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="nav-controls" contenteditable="false">
+            <button onclick="prevSlide()" id="btnPrev">&#8592;</button>
+            <span class="slide-counter" id="counter">1 / 10</span>
+            <button onclick="nextSlide()" id="btnNext">&#8594;</button>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('slides-container');
+        let slides = document.querySelectorAll('.slide');
+        let currentSlide = 0;
+
+        function updateVisibility() {
+            slides.forEach((slide, index) => {
+                slide.classList.toggle('active', index === currentSlide);
+            });
+            document.getElementById('counter').innerText = `${currentSlide + 1} / ${slides.length}`;
+            
+            const current = slides[currentSlide];
+            const btnPrev = document.getElementById('btnPrev');
+            const btnNext = document.getElementById('btnNext');
+            const counterText = document.getElementById('counter');
+
+            const isDark = current.classList.contains('dark-slide');
+
+            if (isDark) {
+                if(btnPrev) btnPrev.style.color = '#ffffff';
+                if(btnNext) btnNext.style.color = '#ffffff';
+                if(counterText) counterText.style.color = '#ffffff';
+            } else {
+                if(btnPrev) btnPrev.style.color = 'var(--primary)';
+                if(btnNext) btnNext.style.color = 'var(--primary)';
+                if(counterText) counterText.style.color = 'var(--text-muted)';
+            }
+        }
+        
+        function nextSlide() { if (currentSlide < slides.length - 1) { currentSlide++; updateVisibility(); } }
+        function prevSlide() { if (currentSlide > 0) { currentSlide--; updateVisibility(); } }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.isContentEditable) {
+                if (e.key === 'Escape') e.target.blur();
+                return;
+            }
+            const key = e.key;
+            const code = e.keyCode || e.which;
+
+            if (key === 'ArrowRight' || key === 'Space' || key === 'PageDown' || code === 34 || key === 'n' || key === 'N') {
+                e.preventDefault(); nextSlide();
+            } else if (key === 'ArrowLeft' || key === 'PageUp' || code === 33 || key === 'p' || key === 'P') {
+                e.preventDefault(); prevSlide();
+            } else if (key === 'f' || key === 'F') {
+                e.preventDefault(); toggleFullScreen();
+            }
+        });
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(err => console.log(err)); } 
+            else { document.exitFullscreen(); }
+        }
+
+        // Habilitar edición al hacer doble clic
+        document.querySelectorAll('[contenteditable="true"]').forEach(elem => {
+            elem.addEventListener('dblclick', function(e) {
+                e.stopPropagation();
+                this.focus();
+            });
+        });
+
+        updateVisibility();
+    </script>
+</body>
+</html>
